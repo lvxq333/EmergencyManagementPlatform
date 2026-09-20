@@ -145,7 +145,9 @@ docs/foxapi-openapi.json
     deployment.md
 ```
 
-## 9. hexiang 服务器部署
+## 9. hexiang 服务器部署（旧 Node 版本）
+
+2026-09-20 已切换为 Java 后端与独立 MySQL，当前访问方式、运维命令和回退说明见 [服务器验收部署](server-acceptance.md)。以下保留旧版记录。
 
 服务器部署使用 Node.js 统一提供静态前端和 `/api` 接口，对外地址为：
 
