@@ -42,6 +42,7 @@ class StageOneIntegrationTest {
   device=call(post("/api/devices"),Map.of("code","P1-DEVICE","name","阶段一设备","stationId",station,"deviceType","GNSS_DISPLACEMENT","metricCode","vertical_displacement","intervalSeconds",30),201).get("id").asLong();
  }
  @Test void deviceCredentialSupportsAuthenticatedContinuousRetryAndAudit() throws Exception {
+  mvc.perform(get("/api/device-ingest/observations")).andExpect(status().isMethodNotAllowed());
   JsonNode credential=call(post("/api/devices/"+device+"/credentials"),null,200);String key=credential.get("deviceKey").asText();
   Map<String,Object> body=Map.of("deviceCode","P1-DEVICE","messageId","network-0001","eventTime",Instant.now().minusSeconds(1).toString(),"metricCode","vertical_displacement","value",1.75,"unit","mm","sourceType","REAL");
   var request=post("/api/device-ingest/observations").header("X-Device-Code","P1-DEVICE").header("X-Device-Key",key).contentType("application/json").content(json.writeValueAsString(body));

@@ -34,6 +34,17 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(new MessageResponse("请求格式错误，请检查数字、布尔值和带时区的时间格式"));
     }
 
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<MessageResponse> handleMethodNotAllowed(org.springframework.web.HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(405).body(new MessageResponse("请求方法不受支持"));
+    }
+
+    @ExceptionHandler({org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.web.multipart.MultipartException.class})
+    public ResponseEntity<MessageResponse> handleMissingInput(Exception ex) {
+        return ResponseEntity.badRequest().body(new MessageResponse("请求参数或上传文件不完整"));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<MessageResponse> handleException(Exception ex) {
         log.error("Unhandled API exception", ex);
