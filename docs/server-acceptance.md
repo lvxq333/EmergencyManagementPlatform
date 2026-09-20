@@ -6,7 +6,7 @@ http://10.21.255.108:18080/login.html （需连接服务器所在网络）
 
 使用原有账号密码，切换后需重新登录。原 Node 文件存储中的 3 个用户、密码哈希、启用状态、角色和权限已迁入私有 MySQL。
 
-在首页进入“数据接入”，可查看 `ACCEPTANCE-DEMO-001` 站点和 `ACCEPTANCE-DISP-001` 位移设备。验收数据全部标记为 SIMULATED；自动模拟任务完成测试后已停止，可在页面重新启动。其他风险专题仍含演示数据。
+在首页进入“数据接入”，可查看 `ACCEPTANCE-DEMO-001` 站点和 `ACCEPTANCE-DISP-001` 位移设备，并验收管段关系、设备密钥、接入日志和 CSV 数据集功能。既有验收数据全部标记为 SIMULATED；自动模拟任务完成测试后已停止，可在页面重新启动。其他风险专题仍含演示数据。
 
 ## 运行结构
 
@@ -21,7 +21,7 @@ http://10.21.255.108:18080/login.html （需连接服务器所在网络）
 | 内容 | 路径 |
 | --- | --- |
 | 当前应用链接 | `$HOME/apps/risk-platform` |
-| 当前发布目录 | `$HOME/apps/risk-platform-releases/20260920-afae24f` |
+| 当前发布目录 | `$HOME/apps/risk-platform-releases/phase1-complete-b73e646` |
 | Java 运行时 | `$HOME/apps/risk-platform-tools/jre17` |
 | 私有数据库文件 | `$HOME/apps/risk-platform-mysql` |
 | Java / 网关环境配置 | `$HOME/.config/risk-platform/java.env`、`gateway.env` |
@@ -60,12 +60,14 @@ mysqldump --defaults-extra-file="$HOME/.config/risk-platform/mysql-admin.cnf" \
 
 ## 已验证
 
-- 本地 `mvn test package`：16 项测试全部通过。
+- 本地 `mvn test package`：21 项测试全部通过。
 - 原 3 个账号的用户名、密码哈希和启用状态逐项一致。
 - 临时账号注册、登录、管理员授权及清理。
 - 站点与设备登记、单条上报、重复消息去重、最新值与历史查询。
 - 后台定时模拟持续产生记录，停止后运行任务数为 0。
 - 前端页面与静态资源可访问；配置、后端源码和部署脚本不能通过网关下载。
 - 原地址切换成功，浏览器登录页可打开。
+- 真实设备独立密钥、HTTP 持续上报、重复消息重试和错误凭证日志通过服务器实测。
+- 管段关系、CSV 暂存校验、数据集发布及清理通过服务器 MySQL 5.7 实测。
 
 此版本供功能验收；尚未完成整体权限加固、容量压测和服务器重启演练，不代表已达到正式生产验收标准。
