@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS users (id BIGINT PRIMARY KEY, username VARCHAR(64), is_active INT);
+CREATE TABLE IF NOT EXISTS roles (id BIGINT PRIMARY KEY,role_name VARCHAR(64));
+CREATE TABLE IF NOT EXISTS user_roles(user_id BIGINT,role_id BIGINT);
+CREATE TABLE IF NOT EXISTS permissions(id BIGINT PRIMARY KEY,permission_key VARCHAR(64));
+CREATE TABLE IF NOT EXISTS role_permissions(role_id BIGINT,permission_id BIGINT);
+INSERT INTO users VALUES(9001,'monitor-admin',1),(9002,'monitor-viewer',1),(9003,'disabled',0);
+INSERT INTO roles VALUES(9001,'Administrator'),(9002,'Viewer');
+INSERT INTO user_roles VALUES(9001,9001),(9002,9002),(9003,9001);
+INSERT INTO permissions VALUES(9001,'risk:view_all');
+INSERT INTO role_permissions VALUES(9002,9001);

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="城市地下管网多系统风险感知与精准预警演示平台">
+    <title>综合态势 | 广域立体风险感知平台</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/dashboard.css?v=20260813-access-fix1">
+    <script src="assets/vendor/echarts-5.4.3.min.js?v=20260802-mapfix3"></script>
+</head>
+
+<body>
+    <header class="app-header">
+        <a class="brand" href="#overview" data-page="overview" aria-label="返回综合态势">
+            <span class="brand-mark"><i class="fa-solid fa-shield-halved"></i></span>
+            <span class="brand-copy">
+                <strong>广域立体风险感知平台</strong>
+                <small>城市地下管网多系统风险预警</small>
+            </span>
+        </a>
+
+        <nav class="main-nav" aria-label="主要功能">
+            <button class="nav-link active" data-page="overview"><i class="fa-solid fa-gauge-high"></i>综合态势</button>
+            <button class="nav-link" data-page="data"><i class="fa-solid fa-plug-circle-bolt"></i>数据接入</button>
+            <button class="nav-link" data-page="rain"><i class="fa-solid fa-cloud-showers-heavy"></i>短临降雨</button>
+            <div class="nav-dropdown">
+                <button class="nav-link dropdown-trigger" id="pipeline-nav" aria-expanded="false">
+                    <i class="fa-solid fa-diagram-project"></i><span>管网专题</span><i class="fa-solid fa-chevron-down nav-chevron"></i>
+                </button>
+                <div class="dropdown-menu" role="menu">
+                    <button data-page="gas" role="menuitem"><span class="domain-dot gas"></span>燃气管网</button>
+                    <button data-page="water" role="menuitem"><span class="domain-dot water"></span>供水管网</button>
+                    <button data-page="heat" role="menuitem"><span class="domain-dot heat"></span>供热管网</button>
+                </div>
+            </div>
+            <button class="nav-link" data-page="coupling"><i class="fa-solid fa-link"></i>耦合研判</button>
+            <button class="nav-link" data-page="alerts"><i class="fa-solid fa-bell"></i>预警处置<span class="nav-count" id="nav-alert-count">6</span></button>
+            <button class="nav-link" data-page="history"><i class="fa-solid fa-chart-line"></i>历史分析</button>
+        </nav>
+
+        <div class="header-tools">
+            <div class="data-health" title="模拟数据服务运行正常"><span></span>模拟数据在线</div>
+            <div class="header-clock"><strong id="clock-time">--:--:--</strong><small id="clock-date">----/--/--</small></div>
+            <div class="profile-menu">
+                <a class="profile-entry" id="account-entry" href="用户管理控制台.html?v=20260813-access-fix1" aria-label="进入账户中心">
+                    <div class="avatar" id="display-user-avatar">管</div>
+                    <div class="profile-copy"><strong id="display-user-name">用户</strong><small id="display-user-role">普通用户</small></div>
+                </a>
+                <button class="icon-btn" id="logout-btn" aria-label="退出登录" title="退出登录"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <div class="context-bar">
+        <div>
+            <span class="breadcrumb">风险感知平台 / <strong id="context-title">综合态势</strong></span>
+            <span class="demo-badge"><i class="fa-solid fa-flask"></i> 当前为模拟演示数据</span>
+        </div>
+        <div class="context-actions">
+            <span>最近更新：<strong id="last-update">--:--:--</strong></span>
+            <button class="soft-btn" id="risk-weight-config-btn" hidden title="管理员配置区域化风险权重"><i class="fa-solid fa-sliders"></i><span>权重配置</span></button>
+            <button class="soft-btn" id="readability-toggle"><i class="fa-solid fa-font"></i><span>大字模式</span></button>
+            <button class="soft-btn" id="simulation-toggle"><i class="fa-solid fa-pause"></i><span>暂停刷新</span></button>
+            <button class="soft-btn" id="fullscreen-btn"><i class="fa-solid fa-expand"></i><span>全屏</span></button>
+        </div>
+    </div>
+
+    <main class="app-main">
+        <!-- 综合态势 -->
+        <section class="page-view active" id="page-overview" aria-labelledby="overview-title">
+            <div class="page-heading">
+                <div><span class="eyebrow">CITYWIDE SITUATION</span><h1 id="overview-title">城市地下管网综合风险态势</h1><p>汇聚短临降雨、燃气、供水、供热及交叉区域耦合风险，形成城市级统一研判。点击指标卡可查看计算明细与数据来源。</p></div>
+                <div class="overall-status"><span class="status-orb warning"></span><div><small>当前综合风险</small><strong id="overview-overall-level">中风险</strong></div><b id="overview-overall-score">72.8</b></div>
+            </div>
+
+            <div class="kpi-grid kpi-grid-5" id="overview-kpis"></div>
+
+            <div class="dashboard-grid overview-grid">
+                <article class="panel overview-summary">
+                    <div class="panel-header"><div><i class="fa-solid fa-chart-pie"></i><span>风险结构</span></div><button class="text-btn" data-page="history">查看分析</button></div>
+                    <div class="chart compact-chart" id="overview-risk-pie"></div>
+                    <div class="domain-ranking" id="domain-ranking"></div>
+                </article>
+
+                <article class="panel map-panel">
+                    <div class="panel-header map-header">
+                        <div><i class="fa-solid fa-map-location-dot"></i><span>北京市综合风险分布</span></div>
+                        <div class="map-actions">
+                            <div class="segmented map-layer-switch" role="group" aria-label="地图图层">
+                                <button class="active" data-overview-layer="comprehensive">综合</button>
+                                <button data-overview-layer="rain">降雨</button>
+                                <button data-overview-layer="gas">燃气</button>
+                                <button data-overview-layer="water">供水</button>
+                                <button data-overview-layer="heat">供热</button>
+                            </div>
+                            <button class="map-reset-btn" type="button" data-reset-map="overview-map" title="恢复地图初始位置与缩放" aria-label="恢复综合风险地图初始视图"><i class="fa-solid fa-rotate-left"></i><span>复位</span></button>
+                        </div>
+                    </div>
+                    <div class="chart main-map" id="overview-map"></div>
+                    <div class="map-legend"><span><i class="legend-block low"></i>低风险</span><span><i class="legend-block medium"></i>中风险</span><span><i class="legend-block high"></i>高风险</span></div>
+                    <div class="map-loading" id="overview-map-loading"><i class="fa-solid fa-circle-notch fa-spin"></i>正在加载北京分区地图</div>
+                </article>
+
+                <article class="panel alert-preview-panel">
+                    <div class="panel-header"><div><i class="fa-solid fa-triangle-exclamation"></i><span>待处置预警</span><em id="preview-alert-count">6</em></div><button class="text-btn" data-page="alerts">全部预警</button></div>
+                    <div class="alert-preview-list" id="alert-preview-list"></div>
+                </article>
+
+                <article class="panel span-2 trend-panel">
+                    <div class="panel-header"><div><i class="fa-solid fa-wave-square"></i><span>24小时综合风险趋势研判</span></div><div class="panel-note"><span class="pulse-dot"></span>每6秒模拟刷新</div></div>
+                    <div class="chart trend-chart" id="overview-trend"></div>
+                </article>
+
+                <article class="panel region-insight">
+                    <div class="panel-header"><div><i class="fa-solid fa-location-crosshairs"></i><span>区域研判</span></div><span class="selected-region-label" id="overview-selected-region">房山区</span></div>
+                    <div id="overview-region-detail"></div>
+                </article>
+            </div>
+        </section>
+
+        <!-- 站点设备与HTTP监测接入 -->
+        <section class="page-view" id="page-data" aria-labelledby="data-title">
+            <div class="page-heading"><div><span class="eyebrow data-color">HTTP MONITORING</span><h1 id="data-title">站点设备与监测数据</h1><p>维护站点、设备档案，接收和查询监测记录。当前实现位移结果接入，尚未连接预测算法。</p></div></div>
+            <div id="monitoring-app">
+                <div class="monitor-actions"><button id="monitor-refresh" type="button">刷新档案与数据</button><span id="monitor-count">等待连接Java后端</span><span id="monitor-summary"></span></div>
+                <div id="monitor-message" class="monitor-message" role="status" aria-live="polite">请登录后使用；管理员可维护档案，具备数据录入权限的用户可上报。</div>
+                <div class="monitor-grid">
+                    <article class="monitor-panel"><h2>站点档案</h2>
+                        <form id="station-form">
+                            <label>站点编号<input name="code" required maxlength="64" pattern="[A-Za-z0-9_-]+" placeholder="GNSS-001"></label>
+                            <label>站点名称<input name="name" required maxlength="120" placeholder="位移测试站"></label>
+                            <label>所属区域<input name="region" required maxlength="120" placeholder="海淀区"></label>
+                            <label>坐标系<select name="coordinateSystem"><option>WGS84</option><option>CGCS2000</option><option>GCJ02</option></select></label>
+                            <label>经度<input name="longitude" type="number" required min="-180" max="180" step="any" placeholder="116.3"></label>
+                            <label>纬度<input name="latitude" type="number" required min="-90" max="90" step="any" placeholder="39.9"></label>
+                            <div class="monitor-actions monitor-wide"><button type="submit">新增保存</button><button type="button" data-reset="station-form">取消编辑</button></div>
+                        </form>
+                    </article>
+                    <article class="monitor-panel"><h2>设备档案</h2>
+                        <form id="device-form">
+                            <label>设备编号<input name="code" required maxlength="64" pattern="[A-Za-z0-9_-]+" placeholder="DISP-001"></label>
+                            <label>设备名称<input name="name" required maxlength="120" placeholder="位移监测设备"></label>
+                            <label>所属站点<select name="stationId" required><option value="">请先新增站点</option></select></label>
+                            <label>设备类型<input name="deviceType" value="GNSS_DISPLACEMENT" required maxlength="64"></label>
+                            <label>监测指标<select name="metricCode" required><option value="">正在读取</option></select></label>
+                            <label>预期上报周期（秒）<input name="intervalSeconds" type="number" required min="1" max="86400" value="30"></label>
+                            <div class="monitor-actions monitor-wide"><button type="submit">新增保存</button><button type="button" data-reset="device-form">取消编辑</button></div>
+                        </form>
+                        <p>已有观测记录的设备不能更换编号、站点或指标；可修改名称、类型及周期。</p>
+                    </article>
+                </div>
+                <article class="monitor-panel"><h2>已登记站点</h2><div class="monitor-scroll"><table><thead><tr><th>编号</th><th>名称</th><th>区域</th><th>位置</th><th>操作</th></tr></thead><tbody id="station-rows"><tr><td colspan="5">等待加载</td></tr></tbody></table></div></article>
+                <div class="monitor-grid">
+                    <article class="monitor-panel monitor-wide"><h2>设备与最近上报</h2><div class="monitor-scroll"><table><thead><tr><th>编号</th><th>名称</th><th>站点</th><th>指标</th><th>周期</th><th>管理状态</th><th>最后接收</th><th>数据构成</th><th>自动模拟</th><th>操作</th></tr></thead><tbody id="device-rows"><tr><td colspan="10">等待加载</td></tr></tbody></table></div></article>
+                    <article class="monitor-panel"><h2>自动模拟数据源</h2><p>由服务器按设定间隔持续产生正弦波模拟值，平台关闭页面后仍会运行。所有记录均标记为模拟。</p>
+                        <form id="simulation-form"><label>启用设备<select name="deviceId" required><option value="">请先新增设备</option></select></label><label>基准值<input name="baseValue" type="number" required step="any" value="1.5"></label><label>波动幅度<input name="amplitude" type="number" required min="0" step="any" value="0.3"></label><label>生成间隔（秒）<input name="intervalSeconds" type="number" required min="1" max="86400" value="10"></label><button type="submit">启动或更新自动模拟</button></form>
+                    </article>
+                    <article class="monitor-panel"><h2>单条模拟数据上报</h2><p>用于手工验证接口。每次提交使用新消息ID和当前采集时间；真实数据仍通过同一HTTP接口提交。</p>
+                        <form id="observation-form"><label>启用设备<select name="deviceId" required><option value="">请先新增设备</option></select></label><label>监测值<input name="value" type="number" required step="any" value="1.62"></label><button type="submit">上报一条模拟记录</button></form>
+                    </article>
+                    <article class="monitor-panel monitor-wide" id="history-panel"><h2 id="history-title">最新值与历史记录</h2><div class="monitor-latest" id="monitor-latest">选择设备的“最新与历史”按钮查看。</div><div class="monitor-scroll"><table><thead><tr><th>消息ID</th><th>采集时间</th><th>接收时间</th><th>监测值</th><th>来源</th></tr></thead><tbody id="observation-rows"></tbody></table></div><div class="monitor-actions"><button id="history-prev" disabled>上一页</button><span id="history-count"></span><button id="history-next" disabled>下一页</button></div></article>
+                </div>
+            </div>
+        </section>
+
+        <!-- 短临降雨 -->
+        <section class="page-view" id="page-rain" aria-labelledby="rain-title">
+            <div class="page-heading">
+                <div><span class="eyebrow rain-color">NOWCAST RAINFALL</span><h1 id="rain-title">短临降雨风险感知与研判</h1><p>融合实况与未来短时预测，识别降雨高风险区域及其对地下管网的潜在影响。</p></div>
+                <div class="weather-summary"><i class="fa-solid fa-cloud-showers-heavy"></i><div><small>北京市当前天气</small><strong>中雨 · 24.6℃</strong><span>湿度 82% · 东南风 3级</span></div></div>
+            </div>
+
+            <div class="kpi-grid kpi-grid-6" id="rain-kpis"></div>
+
+            <div class="forecast-toolbar">
+                <div class="time-controller">
+                    <button class="play-btn" id="rain-play" aria-label="播放预测"><i class="fa-solid fa-play"></i></button>
+                    <div class="segmented forecast-horizon">
+                        <button class="active" data-horizon="0">实况</button><button data-horizon="30">+30分钟</button><button data-horizon="60">+60分钟</button><button data-horizon="120">+120分钟</button>
+                    </div>
+                </div>
+                <div class="forecast-meta"><span><i class="fa-solid fa-circle-info"></i> 蓝色虚线后为模型预测</span><strong id="rain-valid-time">有效时间 --:--</strong></div>
+            </div>
+
+            <div class="dashboard-grid rain-grid">
+                <article class="panel map-panel rain-map-panel">
+                    <div class="panel-header map-header"><div><i class="fa-solid fa-cloud-rain"></i><span>降雨强度与风险分区</span></div><div class="map-actions"><div class="segmented"><button class="active" data-rain-layer="intensity">降雨强度</button><button data-rain-layer="risk">风险等级</button><button data-rain-layer="impact">影响管网</button></div><button class="map-reset-btn" type="button" data-reset-map="rain-map" title="恢复地图初始位置与缩放" aria-label="恢复短临降雨地图初始视图"><i class="fa-solid fa-rotate-left"></i><span>复位</span></button></div></div>
+                    <div class="chart rain-map" id="rain-map"></div>
+                    <div class="map-loading" id="rain-map-loading"><i class="fa-solid fa-circle-notch fa-spin"></i>正在加载北京分区地图</div>
+                </article>
+
+                <article class="panel rain-judgement">
+                    <div class="panel-header"><div><i class="fa-solid fa-ranking-star"></i><span>区域风险研判</span></div><span class="forecast-chip" id="rain-stage-label">当前实况</span></div>
+                    <div class="rain-ranking" id="rain-ranking"></div>
+                </article>
+
+                <article class="panel span-2">
+                    <div class="panel-header"><div><i class="fa-solid fa-chart-area"></i><span>实况与短临预测曲线</span></div><div class="chart-legend-inline"><span class="solid-line"></span>实况<span class="dash-line"></span>预测</div></div>
+                    <div class="chart trend-chart" id="rain-trend"></div>
+                </article>
+
+                <article class="panel impact-panel">
+                    <div class="panel-header"><div><i class="fa-solid fa-arrows-turn-to-dots"></i><span>降雨关联影响</span></div></div>
+                    <div class="impact-chain" id="rain-impact-chain"></div>
+                    <div class="impact-summary" id="rain-impact-summary"></div>
+                </article>
+            </div>
+        </section>
+
+        <!-- 三类管网共用专题页 -->
+        <section class="page-view" id="page-pipeline" aria-labelledby="pipeline-title">
+            <div class="page-heading pipeline-heading">
+                <div><span class="eyebrow" id="pipeline-eyebrow">GAS NETWORK</span><h1 id="pipeline-title">燃气管网风险感知</h1><p id="pipeline-description">监测甲烷浓度、压力与泄漏风险，研判腐蚀、外力破坏及地质变化影响。</p></div>
+                <div class="pipeline-switch" role="group" aria-label="切换管网专题"><button class="active gas" data-page="gas"><i class="fa-solid fa-fire-flame-simple"></i>燃气</button><button class="water" data-page="water"><i class="fa-solid fa-droplet"></i>供水</button><button class="heat" data-page="heat"><i class="fa-solid fa-temperature-high"></i>供热</button></div>
+            </div>
+
+            <div class="kpi-grid kpi-grid-6" id="pipeline-kpis"></div>
+
+            <div class="dashboard-grid pipeline-grid">
+                <article class="panel map-panel pipeline-map-panel">
+                    <div class="panel-header map-header"><div><i class="fa-solid fa-route"></i><span id="pipeline-map-title">燃气管网区域风险</span></div><div class="map-actions"><div class="segmented"><button class="active" data-pipeline-layer="risk">风险分区</button><button data-pipeline-layer="metric">核心指标</button><button data-pipeline-layer="events">事件点位</button></div><button class="map-reset-btn" type="button" data-reset-map="pipeline-map" title="恢复地图初始位置与缩放" aria-label="恢复管网专题地图初始视图"><i class="fa-solid fa-rotate-left"></i><span>复位</span></button></div></div>
+                    <div class="chart pipeline-map" id="pipeline-map"></div>
+                    <div class="map-loading" id="pipeline-map-loading"><i class="fa-solid fa-circle-notch fa-spin"></i>正在加载北京分区地图</div>
+                </article>
+
+                <article class="panel pipeline-detail-panel">
+                    <div class="panel-header"><div><i class="fa-solid fa-magnifying-glass-location"></i><span>区域监测详情</span></div><span class="selected-region-label" id="pipeline-selected-region">房山区</span></div>
+                    <div id="pipeline-region-detail"></div>
+                </article>
+
+                <article class="panel span-2">
+                    <div class="panel-header"><div><i class="fa-solid fa-chart-line"></i><span id="pipeline-trend-title">甲烷浓度与管道压力趋势</span></div><div class="segmented range-switch"><button class="active" data-pipeline-range="24">24小时</button><button data-pipeline-range="72">3天</button><button data-pipeline-range="168">7天</button></div></div>
+                    <div class="chart trend-chart" id="pipeline-trend"></div>
+                </article>
+
+                <article class="panel factor-panel">
+                    <div class="panel-header"><div><i class="fa-solid fa-bars-progress"></i><span>风险贡献因素 Top 5</span></div><button class="text-btn" id="factor-detail-btn">指标依据</button></div>
+                    <div class="chart factor-chart" id="pipeline-factors"></div>
+                </article>
+
+                <article class="panel span-3 event-chain-panel">
+                    <div class="panel-header"><div><i class="fa-solid fa-arrow-right-arrow-left"></i><span id="pipeline-chain-title">燃气泄漏风险演化链</span></div><span class="panel-note">点击节点查看研判说明</span></div>
+                    <div class="risk-chain" id="pipeline-risk-chain"></div>
+                    <div class="chain-explanation" id="pipeline-chain-explanation"></div>
+                </article>
+            </div>
+        </section>
+
+        <!-- 耦合研判 -->
+        <section class="page-view" id="page-coupling" aria-labelledby="coupling-title">
+            <div class="page-heading">
+                <div><span class="eyebrow coupling-color">MULTI-SYSTEM COUPLING</span><h1 id="coupling-title">地下管网交叉区域耦合风险研判</h1><p>综合空间邻近、功能依赖、恢复影响和风险传播，识别多系统风险放大区域。</p></div>
+                <div class="coupling-score"><small>当前最高耦合风险</small><strong id="coupling-top-zone">国贸桥交叉区</strong><span><b id="coupling-top-score">86.2</b> 高风险</span></div>
+            </div>
+
+            <div class="zone-tabs" id="coupling-zone-tabs"></div>
+
+            <div class="dashboard-grid coupling-grid">
+                <article class="panel map-panel coupling-map-panel">
+                    <div class="panel-header map-header"><div><i class="fa-solid fa-code-branch"></i><span>交叉区域风险分布</span></div><div class="map-actions"><span class="panel-note">点击行政区查看关联交叉点</span><button class="map-reset-btn" type="button" data-reset-map="coupling-map" title="恢复地图初始位置与缩放" aria-label="恢复耦合风险地图初始视图"><i class="fa-solid fa-rotate-left"></i><span>复位</span></button></div></div>
+                    <div class="chart coupling-map" id="coupling-map"></div>
+                    <div class="map-loading" id="coupling-map-loading"><i class="fa-solid fa-circle-notch fa-spin"></i>正在加载北京分区地图</div>
+                </article>
+
+                <article class="panel coupling-system-panel">
+                    <div class="panel-header"><div><i class="fa-solid fa-layer-group"></i><span>系统风险构成</span></div><span id="coupling-zone-code">CZ-001</span></div>
+                    <div class="system-score-list" id="coupling-system-scores"></div>
+                    <div class="coupling-factor"><small>耦合放大系数</small><strong id="coupling-factor-value">1.28</strong><span>多系统共同作用后风险提升</span></div>
+                </article>
+
+                <article class="panel span-2 relation-panel">
+                    <div class="panel-header"><div><i class="fa-solid fa-table-cells"></i><span>多系统相互影响矩阵</span></div><span class="panel-note">点击关系单元格查看作用说明</span></div>
+                    <div class="relation-matrix" id="relation-matrix"></div>
+                </article>
+
+                <article class="panel propagation-panel">
+                    <div class="panel-header"><div><i class="fa-solid fa-share-nodes"></i><span>风险传播链研判</span></div></div>
+                    <div class="propagation-chain" id="propagation-chain"></div>
+                    <div class="relation-detail" id="relation-detail"></div>
+                </article>
+            </div>
+        </section>
+
+        <!-- 预警处置 -->
+        <section class="page-view" id="page-alerts" aria-labelledby="alerts-title">
+            <div class="page-heading">
+                <div><span class="eyebrow alert-color">WARNING &amp; RESPONSE</span><h1 id="alerts-title">综合预警与事件处置</h1><p>统一管理降雨、燃气、供水、供热和多系统耦合预警，形成处置闭环。</p></div>
+                <button class="primary-btn" id="new-rule-btn"><i class="fa-solid fa-plus"></i>新建预警规则</button>
+            </div>
+
+            <div class="kpi-grid kpi-grid-5" id="alert-kpis"></div>
+
+            <div class="content-tabs" role="tablist"><button class="active" data-alert-tab="list" role="tab">实时预警</button><button data-alert-tab="rules" role="tab">规则配置</button><button data-alert-tab="timeline" role="tab">处置时间线</button></div>
+
+            <div class="alert-tab active" id="alert-tab-list">
+                <div class="filter-bar">
+                    <div class="filter-group"><label>风险类型</label><select id="alert-type-filter"><option value="all">全部类型</option><option value="rain">短临降雨</option><option value="gas">燃气</option><option value="water">供水</option><option value="heat">供热</option><option value="coupling">耦合风险</option></select></div>
+                    <div class="filter-group"><label>预警等级</label><select id="alert-level-filter"><option value="all">全部等级</option><option value="red">红色</option><option value="orange">橙色</option><option value="yellow">黄色</option></select></div>
+                    <div class="filter-group"><label>处置状态</label><select id="alert-status-filter"><option value="all">全部状态</option><option value="pending">待确认</option><option value="processing">处置中</option><option value="assigned">已派单</option><option value="closed">已关闭</option></select></div>
+                    <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="alert-search" type="search" placeholder="搜索区域、事件或编号"></div>
+                    <button class="soft-btn" id="reset-alert-filter"><i class="fa-solid fa-rotate-left"></i>重置</button>
+                </div>
+                <article class="panel table-panel">
+                    <div class="alert-table-wrap"><table class="alert-table"><thead><tr><th>等级</th><th>预警编号 / 类型</th><th>区域与对象</th><th>触发条件</th><th>发生时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="alert-table-body"></tbody></table></div>
+                    <div class="table-footer"><span id="alert-result-count">共 0 条记录</span><span>演示操作会即时更新状态</span></div>
+                </article>
+            </div>
+
+            <div class="alert-tab" id="alert-tab-rules">
+                <div class="rule-layout">
+                    <article class="panel rule-form-panel">
+                        <div class="panel-header"><div><i class="fa-solid fa-sliders"></i><span>预警规则编辑</span></div><span class="demo-badge">模拟配置</span></div>
+                        <form id="rule-form" class="rule-form">
+                            <label>规则名称<input id="rule-name" required placeholder="例如：短临强降雨橙色预警"></label>
+                            <div class="form-row"><label>风险类型<select id="rule-type"><option value="rain">短临降雨</option><option value="gas">燃气管网</option><option value="water">供水管网</option><option value="heat">供热管网</option><option value="coupling">多系统耦合</option></select></label><label>预警等级<select id="rule-level"><option value="yellow">黄色</option><option value="orange">橙色</option><option value="red">红色</option></select></label></div>
+                            <div class="form-row"><label>指标名称<input id="rule-metric" required placeholder="降雨强度 / 甲烷浓度"></label><label>阈值<input id="rule-threshold" required placeholder="> 50 mm/h"></label></div>
+                            <label>联动条件<textarea id="rule-condition" rows="3" placeholder="可选：同时满足地表位移持续上升"></textarea></label>
+                            <button class="primary-btn" type="submit"><i class="fa-solid fa-floppy-disk"></i>保存规则</button>
+                        </form>
+                    </article>
+                    <article class="panel rules-panel"><div class="panel-header"><div><i class="fa-solid fa-list-check"></i><span>已配置规则</span></div><strong id="rule-count">0 条</strong></div><div class="rule-list" id="rule-list"></div></article>
+                </div>
+            </div>
+
+            <div class="alert-tab" id="alert-tab-timeline">
+                <article class="panel timeline-panel"><div class="panel-header"><div><i class="fa-solid fa-clock-rotate-left"></i><span>今日处置记录</span></div><span class="panel-note">按时间倒序</span></div><div class="event-timeline" id="event-timeline"></div></article>
+            </div>
+        </section>
+
+        <!-- 历史分析 -->
+        <section class="page-view" id="page-history" aria-labelledby="history-title">
+            <div class="page-heading">
+                <div><span class="eyebrow history-color">HISTORICAL ANALYSIS</span><h1 id="history-title">历史趋势与多系统对比</h1><p>回溯关键指标和预警变化，对比不同时段、区域和系统的风险演变。</p></div>
+                <button class="soft-btn" id="export-btn"><i class="fa-solid fa-file-export"></i>导出演示报告</button>
+            </div>
+
+            <div class="analysis-toolbar">
+                <div class="segmented" id="history-period"><button data-period="24">24小时</button><button class="active" data-period="168">近7天</button><button data-period="720">近30天</button></div>
+                <div class="filter-group inline"><label>分析区域</label><select id="history-region"><option>北京市</option><option>朝阳区</option><option>海淀区</option><option>房山区</option><option>通州区</option><option>昌平区</option></select></div>
+                <div class="filter-group inline"><label>核心指标</label><select id="history-metric"><option value="risk">综合风险指数</option><option value="rain">降雨强度</option><option value="gas">甲烷浓度</option><option value="water">供水压力</option><option value="heat">供回水温差</option></select></div>
+            </div>
+
+            <div class="dashboard-grid history-grid">
+                <article class="panel span-3"><div class="panel-header"><div><i class="fa-solid fa-chart-line"></i><span id="history-trend-title">近7天综合风险趋势</span></div><div class="chart-legend-inline"><span class="domain-line rain"></span>降雨<span class="domain-line gas"></span>燃气<span class="domain-line water"></span>供水<span class="domain-line heat"></span>供热</div></div><div class="chart history-main-chart" id="history-trend"></div></article>
+                <article class="panel span-2"><div class="panel-header"><div><i class="fa-solid fa-chart-column"></i><span>各区域风险对比</span></div><span class="panel-note">综合风险指数</span></div><div class="chart history-sub-chart" id="history-region-compare"></div></article>
+                <article class="panel"><div class="panel-header"><div><i class="fa-solid fa-bell"></i><span>预警统计</span></div></div><div class="chart history-sub-chart" id="history-alert-stats"></div></article>
+            </div>
+        </section>
+    </main>
+
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+    <div class="modal-backdrop" id="detail-modal" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div class="modal-header"><div><span class="eyebrow">RISK DETAIL</span><h2 id="modal-title">风险指标依据</h2></div><button class="icon-btn modal-close" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button></div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="assets/monitoring.css">
+    <script src="assets/monitoring.js"></script>
+    <script src="assets/dashboard.js?v=phase1-monitoring"></script>
+</body>
+
+</html>

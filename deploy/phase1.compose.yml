@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql:8.4
+    ports:
+      - "127.0.0.1:13316:3306"
+    environment:
+      MYSQL_DATABASE: risk_platform_db
+      MYSQL_USER: riskdev
+      MYSQL_PASSWORD: risk-local-development-only
+      MYSQL_ROOT_PASSWORD: risk-root-local-development-only
+    volumes:
+      - phase1-mysql:/var/lib/mysql
+      - ../backend-java/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01-base.sql:ro
+      - ../backend-java/src/main/resources/db/phase1.sql:/docker-entrypoint-initdb.d/02-monitoring.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+volumes:
+  phase1-mysql:

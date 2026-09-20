@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 | 广域立体风险感知平台</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --color-primary: #4f46e5;
+            --color-background: #0f172a;
+            --color-card: #1e293b;
+            --color-text-light: #f1f5f9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text-light);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="w-full max-w-md p-8 m-4 bg-card rounded-xl shadow-2xl border border-slate-700">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-indigo-400 flex items-center justify-center">
+                <i data-lucide="shield" class="w-7 h-7 mr-3 text-indigo-400"></i>
+                平台登录
+            </h1>
+            <p id="auth-subtitle" class="text-slate-400 mt-2">使用您的凭证登录或注册新账户</p>
+        </div>
+
+        <form id="auth-form">
+            <input type="hidden" id="auth-mode" value="login">
+
+            <div class="mb-4">
+                <label for="username" class="block text-sm font-medium mb-1 text-slate-300">用户名</label>
+                <input type="text" id="username" name="username" required
+                    class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-slate-50">
+            </div>
+
+            <div class="mb-4">
+                <label for="password" class="block text-sm font-medium mb-1 text-slate-300">密码</label>
+                <input type="password" id="password" name="password" required
+                    class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-slate-50">
+            </div>
+
+            <div id="real-name-field" class="mb-4 hidden">
+                <label for="real-name" class="block text-sm font-medium mb-1 text-slate-300">真实姓名 (可选)</label>
+                <input type="text" id="real-name" name="real-name"
+                    class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-slate-50">
+            </div>
+
+            <button type="submit" id="auth-submit-btn"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg transition duration-200 shadow-md">
+                登录
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <p id="toggle-message" class="text-sm text-slate-400">
+                没有账户
+                <button id="toggle-auth-btn" onclick="toggleAuthMode()"
+                    class="text-indigo-400 hover:text-indigo-300 font-medium">立即注册</button>
+            </p>
+        </div>
+    </div>
+
+    <div id="api-toast-container"></div>
+
+    <script>
+        lucide.createIcons();
+        const API_BASE_URL = '/api';
+
+        const authForm = document.getElementById('auth-form');
+        const authModeInput = document.getElementById('auth-mode');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+        const realNameField = document.getElementById('real-name-field');
+
+        function showToast(message, type = 'info') {
+            let toast = document.createElement('div');
+            const colors = { info: 'bg-indigo-600', success: 'bg-green-600', error: 'bg-red-600' };
+            toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-xl text-white font-bold z-50 transition-opacity duration-300 ${colors[type]}`;
+            toast.textContent = message;
+            document.getElementById('api-toast-container').appendChild(toast);
+            setTimeout(() => { toast.style.opacity = 0; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        async function apiFetch(endpoint, options = {}) {
+            const url = `${API_BASE_URL}${endpoint}`;
+            try {
+                authSubmitBtn.disabled = true;
+                const response = await fetch(url, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options,
+                });
+                const data = await response.json();
+                authSubmitBtn.disabled = false;
+                if (!response.ok) throw new Error(data.message || `Error: ${response.status}`);
+                return data;
+            } catch (error) {
+                authSubmitBtn.disabled = false;
+                showToast(`操作失败: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        function toggleAuthMode() {
+            const isLogin = authModeInput.value === 'login';
+            const toggleMessage = document.getElementById('toggle-message');
+            const toggleBtn = document.getElementById('toggle-auth-btn');
+
+            if (isLogin) {
+                // 切换到注册模式
+                authModeInput.value = 'register';
+                authSubmitBtn.textContent = '注册';
+                realNameField.classList.remove('hidden');
+                toggleMessage.innerHTML = '如有账户？ <button id="toggle-auth-btn" onclick="toggleAuthMode()" class="text-indigo-400 hover:text-indigo-300 font-medium">立即登录</button>';
+            } else {
+                // 切换到登录模式
+                authModeInput.value = 'login';
+                authSubmitBtn.textContent = '登录';
+                realNameField.classList.add('hidden');
+                toggleMessage.innerHTML = '没有账户？ <button id="toggle-auth-btn" onclick="toggleAuthMode()" class="text-indigo-400 hover:text-indigo-300 font-medium">立即注册</button>';
+            }
+        }
+
+        authForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const mode = authModeInput.value;
+            const body = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+            if (mode === 'register') body.realName = document.getElementById('real-name').value;
+
+            try {
+                const result = await apiFetch(mode === 'login' ? '/auth/login' : '/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify(body)
+                });
+
+                if (result.token) {
+                    // 存储 Token 和 用户信息
+                    localStorage.setItem('auth_token', result.token);
+                    localStorage.setItem('current_user', JSON.stringify(result.user));
+
+                    showToast('验证成功，正在进入平台...', 'success');
+
+                    // 延迟一秒跳转，让用户看到成功提示
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 1000);
+                } else {
+                    // 注册成功，切换到登录模式
+                    showToast('注册成功，请登录', 'success');
+                    setTimeout(() => {
+                        toggleAuthMode();
+                    }, 1000);
+                }
+            } catch (error) {
+                // 错误已在 apiFetch 中处理
+            }
+        });
+
+        // if (localStorage.getItem('auth_token')) {
+        //     window.location.href = 'home.html';
+        // }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+#monitoring-app { color: #dfebf5; }
+#monitoring-app .monitor-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; margin: 18px 0; }
+#monitoring-app .monitor-panel { background:#0a203b; border:1px solid #294768; border-radius:12px; padding:20px; min-width:0; }
+#monitoring-app h2 { font-size:18px; margin:0 0 14px; }
+#monitoring-app p { line-height:1.7; color:#aebed0; }
+#monitoring-app form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+#monitoring-app label { display:flex; flex-direction:column; gap:6px; font-size:13px; }
+#monitoring-app input, #monitoring-app select { min-width:0; width:100%; background:#06172c; color:#eef5ff; padding:10px; border:1px solid #47617b; border-radius:6px; }
+#monitoring-app button { background:#1465a8; color:white; border:1px solid #468ac2; border-radius:6px; padding:9px 12px; cursor:pointer; }
+#monitoring-app button:disabled { opacity:.5; cursor:wait; }
+#monitoring-app .monitor-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+#monitoring-app .monitor-scroll { overflow:auto; }
+#monitoring-app table { width:100%; border-collapse:collapse; font-size:13px; }
+#monitoring-app th, #monitoring-app td { border-bottom:1px solid #294768; padding:12px 8px; text-align:left; white-space:nowrap; }
+#monitoring-app .monitor-message { padding:12px 0; min-height:44px; color:#98d4ff; white-space:pre-wrap; }
+#monitoring-app .monitor-message.error { color:#ffaeae; }
+#monitoring-app .monitor-wide { grid-column:1/-1; }
+#monitoring-app .monitor-latest { margin:12px 0; line-height:1.8; }
+@media(max-width:850px) { #monitoring-app .monitor-grid { grid-template-columns:1fr; } }

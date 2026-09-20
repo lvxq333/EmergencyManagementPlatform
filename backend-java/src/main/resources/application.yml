@@ -1,0 +1,28 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: risk-platform-backend
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/risk_platform_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:12345678}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      initialization-fail-timeout: ${DB_INIT_FAIL_TIMEOUT_MS:0}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:2000}
+      validation-timeout: ${DB_VALIDATION_TIMEOUT_MS:1000}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 1200ms
+      connect-timeout: 1200ms
+
+risk-platform:
+  jwt-secret: ${JWT_SECRET:risk-platform-local-secret-key-change-me-2026}
+  jwt-expiration-hours: ${JWT_EXPIRATION_HOURS:24}
+  redis-enabled: ${REDIS_ENABLED:true}
+  persist-risk-events: ${PERSIST_RISK_EVENTS:true}
+  expose-internal-errors: ${EXPOSE_INTERNAL_ERRORS:true}

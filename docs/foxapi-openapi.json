@@ -1,0 +1,972 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "广域立体风险感知平台接口",
+    "description": "适用于 FoxAPI 导入的 OpenAPI 3.0 接口文档。前端通过 Nginx 8080 访问，/api 请求转发到 Java Spring Boot / Tomcat 8081。",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "本机 Nginx 入口"
+    },
+    {
+      "url": "http://127.0.0.1:8081",
+      "description": "Java 后端直连地址"
+    }
+  ],
+  "tags": [
+    {
+      "name": "认证",
+      "description": "登录与注册"
+    },
+    {
+      "name": "用户管理",
+      "description": "用户增删改查、搜索和状态切换"
+    },
+    {
+      "name": "角色管理",
+      "description": "角色增删改查和权限绑定"
+    },
+    {
+      "name": "权限",
+      "description": "权限点查询"
+    },
+    {
+      "name": "风险看板",
+      "description": "实时风险态势、指标和告警"
+    }
+  ],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "用户登录",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "username": "admin",
+                "password": "123456"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "用户注册",
+        "operationId": "register",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "example": {
+                "username": "viewer01",
+                "password": "123456",
+                "realName": "查看员"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": ["用户管理"],
+        "summary": "获取用户列表",
+        "operationId": "listUsers",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "按用户名或真实姓名模糊搜索",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": ["用户管理"],
+        "summary": "新增用户",
+        "operationId": "createUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "put": {
+        "tags": ["用户管理"],
+        "summary": "编辑用户",
+        "operationId": "updateUser",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["用户管理"],
+        "summary": "删除用户",
+        "operationId": "deleteUser",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/users/{id}/status": {
+      "patch": {
+        "tags": ["用户管理"],
+        "summary": "修改用户状态",
+        "operationId": "updateUserStatus",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserStatusRequest"
+              },
+              "example": {
+                "status": "inactive"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "状态已更新",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/roles": {
+      "get": {
+        "tags": ["角色管理"],
+        "summary": "获取角色列表",
+        "operationId": "listRoles",
+        "responses": {
+          "200": {
+            "description": "角色列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Role"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": ["角色管理"],
+        "summary": "新增角色",
+        "operationId": "createRole",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/roles/{id}": {
+      "put": {
+        "tags": ["角色管理"],
+        "summary": "编辑角色",
+        "operationId": "updateRole",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RoleId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["角色管理"],
+        "summary": "删除角色",
+        "operationId": "deleteRole",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RoleId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/permissions": {
+      "get": {
+        "tags": ["权限"],
+        "summary": "获取权限列表",
+        "operationId": "listPermissions",
+        "responses": {
+          "200": {
+            "description": "权限列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Permission"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/api/risk/overview": {
+      "get": {
+        "tags": ["风险看板"],
+        "summary": "获取实时风险概览",
+        "operationId": "getRiskOverview",
+        "responses": {
+          "200": {
+            "description": "实时风险概览",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskOverview"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "parameters": {
+      "UserId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "用户 ID",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      },
+      "RoleId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "角色 ID",
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MessageResponse"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未认证或账号密码错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MessageResponse"
+            },
+            "example": {
+              "message": "用户名或密码错误"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "资源不存在",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MessageResponse"
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "服务端错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MessageResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "操作成功"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "123456"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "登录成功"
+          },
+          "token": {
+            "type": "string",
+            "example": "jwt-token"
+          },
+          "user": {
+            "$ref": "#/components/schemas/LoginUser"
+          }
+        }
+      },
+      "LoginUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
+          "realName": {
+            "type": "string",
+            "example": "管理员"
+          },
+          "roleNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["Administrator"]
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "viewer01"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "123456"
+          },
+          "realName": {
+            "type": "string",
+            "example": "查看员"
+          }
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "注册成功"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 3
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
+          "realName": {
+            "type": "string",
+            "nullable": true,
+            "example": "管理员"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "example": "admin@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "example": "13800000000"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "inactive"],
+            "example": "active"
+          },
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": [1]
+          }
+        }
+      },
+      "UserUpsertRequest": {
+        "type": "object",
+        "required": ["username", "realName"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "inspector01"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "description": "新增用户必填；编辑用户时可不传或传空值表示不修改密码",
+            "example": "123456"
+          },
+          "realName": {
+            "type": "string",
+            "example": "巡检员"
+          },
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": [2]
+          }
+        }
+      },
+      "CreateUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "用户创建成功"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 4
+          }
+        }
+      },
+      "UserStatusRequest": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["active", "inactive"],
+            "example": "inactive"
+          }
+        }
+      },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "role_name": {
+            "type": "string",
+            "example": "Administrator"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "超级管理员，拥有所有权限"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-22T10:00:00"
+          },
+          "permissionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": [1, 2, 3, 4, 5]
+          }
+        }
+      },
+      "RoleUpsertRequest": {
+        "type": "object",
+        "required": ["role_name"],
+        "properties": {
+          "role_name": {
+            "type": "string",
+            "example": "Dispatcher"
+          },
+          "description": {
+            "type": "string",
+            "example": "调度员，负责预警处置"
+          },
+          "permissionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": [3, 4]
+          }
+        }
+      },
+      "CreateRoleResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "角色创建成功"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 4
+          }
+        }
+      },
+      "Permission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "permission_key": {
+            "type": "string",
+            "example": "user:manage"
+          },
+          "permission_name": {
+            "type": "string",
+            "example": "用户管理菜单"
+          },
+          "module": {
+            "type": "string",
+            "example": "System"
+          }
+        }
+      },
+      "RiskOverview": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-22T10:20:30+08:00"
+          },
+          "regions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskRegion"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/RiskSummary"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskMetric"
+            }
+          },
+          "alerts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskAlert"
+            }
+          }
+        }
+      },
+      "RiskRegion": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "海淀区"
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200,
+            "example": 76
+          },
+          "level": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "example": "low"
+          },
+          "statusText": {
+            "type": "string",
+            "example": "低风险"
+          }
+        }
+      },
+      "RiskSummary": {
+        "type": "object",
+        "properties": {
+          "low": {
+            "type": "integer",
+            "example": 12
+          },
+          "medium": {
+            "type": "integer",
+            "example": 3
+          },
+          "high": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "RiskMetric": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "甲烷浓度"
+          },
+          "value": {
+            "type": "number",
+            "format": "double",
+            "example": 0.74
+          },
+          "unit": {
+            "type": "string",
+            "example": "%"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["normal", "warning"],
+            "example": "normal"
+          }
+        }
+      },
+      "RiskAlert": {
+        "type": "object",
+        "properties": {
+          "region": {
+            "type": "string",
+            "example": "朝阳区"
+          },
+          "value": {
+            "type": "integer",
+            "example": 132
+          },
+          "level": {
+            "type": "string",
+            "enum": ["medium", "high"],
+            "example": "medium"
+          },
+          "message": {
+            "type": "string",
+            "example": "朝阳区风险值达到132，持续监控中。"
+          },
+          "handled": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
