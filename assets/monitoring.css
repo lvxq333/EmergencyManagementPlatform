@@ -16,4 +16,7 @@
 #monitoring-app .monitor-message.error { color:#ffaeae; }
 #monitoring-app .monitor-wide { grid-column:1/-1; }
 #monitoring-app .monitor-latest { margin:12px 0; line-height:1.8; }
+#monitoring-app .monitor-code { margin:0; padding:14px; overflow:auto; white-space:pre-wrap; background:#041225; border:1px solid #294768; border-radius:8px; color:#bfe2ff; line-height:1.6; }
+#monitoring-app .monitor-result { min-height:120px; padding:14px; white-space:pre-wrap; background:#06172c; border-radius:8px; line-height:1.7; }
+#monitoring-app select[multiple] { min-height:140px; }
 @media(max-width:850px) { #monitoring-app .monitor-grid { grid-template-columns:1fr; } }

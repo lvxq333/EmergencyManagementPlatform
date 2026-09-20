@@ -124,7 +124,7 @@
 
         <!-- 站点设备与HTTP监测接入 -->
         <section class="page-view" id="page-data" aria-labelledby="data-title">
-            <div class="page-heading"><div><span class="eyebrow data-color">HTTP MONITORING</span><h1 id="data-title">站点设备与监测数据</h1><p>维护站点、设备档案，接收和查询监测记录。当前实现位移结果接入，尚未连接预测算法。</p></div></div>
+            <div class="page-heading"><div><span class="eyebrow data-color">PHASE 1 · DATA STANDARD</span><h1 id="data-title">基础档案与监测数据接入</h1><p>维护站点、设备和管段关系，通过独立设备密钥持续接收真实数据，或导入可校验、可追溯的 CSV 数据集。</p></div></div>
             <div id="monitoring-app">
                 <div class="monitor-actions"><button id="monitor-refresh" type="button">刷新档案与数据</button><span id="monitor-count">等待连接Java后端</span><span id="monitor-summary"></span></div>
                 <div id="monitor-message" class="monitor-message" role="status" aria-live="polite">请登录后使用；管理员可维护档案，具备数据录入权限的用户可上报。</div>
@@ -133,6 +133,8 @@
                         <form id="station-form">
                             <label>站点编号<input name="code" required maxlength="64" pattern="[A-Za-z0-9_-]+" placeholder="GNSS-001"></label>
                             <label>站点名称<input name="name" required maxlength="120" placeholder="位移测试站"></label>
+                            <label>站点类型<select name="stationType"><option value="GNSS">GNSS 基准站</option><option value="WEATHER">气象站</option><option value="PIPELINE">管线监测站</option><option value="OTHER">其他</option></select></label>
+                            <label>管理状态<select name="enabled"><option value="true">启用</option><option value="false">停用</option></select></label>
                             <label>所属区域<input name="region" required maxlength="120" placeholder="海淀区"></label>
                             <label>坐标系<select name="coordinateSystem"><option>WGS84</option><option>CGCS2000</option><option>GCJ02</option></select></label>
                             <label>经度<input name="longitude" type="number" required min="-180" max="180" step="any" placeholder="116.3"></label>
@@ -146,6 +148,7 @@
                             <label>设备名称<input name="name" required maxlength="120" placeholder="位移监测设备"></label>
                             <label>所属站点<select name="stationId" required><option value="">请先新增站点</option></select></label>
                             <label>设备类型<input name="deviceType" value="GNSS_DISPLACEMENT" required maxlength="64"></label>
+                            <label>接入协议<select name="protocol"><option value="HTTP">HTTP</option><option value="MQTT">MQTT（档案预留）</option><option value="FILE">文件导入</option></select></label>
                             <label>监测指标<select name="metricCode" required><option value="">正在读取</option></select></label>
                             <label>预期上报周期（秒）<input name="intervalSeconds" type="number" required min="1" max="86400" value="30"></label>
                             <div class="monitor-actions monitor-wide"><button type="submit">新增保存</button><button type="button" data-reset="device-form">取消编辑</button></div>
@@ -155,7 +158,27 @@
                 </div>
                 <article class="monitor-panel"><h2>已登记站点</h2><div class="monitor-scroll"><table><thead><tr><th>编号</th><th>名称</th><th>区域</th><th>位置</th><th>操作</th></tr></thead><tbody id="station-rows"><tr><td colspan="5">等待加载</td></tr></tbody></table></div></article>
                 <div class="monitor-grid">
-                    <article class="monitor-panel monitor-wide"><h2>设备与最近上报</h2><div class="monitor-scroll"><table><thead><tr><th>编号</th><th>名称</th><th>站点</th><th>指标</th><th>周期</th><th>管理状态</th><th>最后接收</th><th>数据构成</th><th>自动模拟</th><th>操作</th></tr></thead><tbody id="device-rows"><tr><td colspan="10">等待加载</td></tr></tbody></table></div></article>
+                    <article class="monitor-panel"><h2>管段档案</h2>
+                        <form id="pipeline-form">
+                            <label>管段编号<input name="code" required maxlength="64" pattern="[A-Za-z0-9_-]+" placeholder="GAS-SEG-001"></label>
+                            <label>管段名称<input name="name" required maxlength="120" placeholder="示范区燃气管段"></label>
+                            <label>管线类型<select name="pipelineType"><option value="GAS">燃气</option><option value="WATER">供水</option><option value="HEATING">供热</option><option value="OTHER">其他</option></select></label>
+                            <label>所属区域<input name="region" required maxlength="120" placeholder="海淀区"></label>
+                            <label>长度（km）<input name="lengthKm" type="number" min="0" step="any" required value="1"></label>
+                            <label>数据来源<input name="dataSource" required maxlength="120" placeholder="建设台账 / 测绘成果"></label>
+                            <label class="monitor-wide">几何数据（可选 GeoJSON）<input name="geometryJson" maxlength="20000" placeholder='{"type":"LineString","coordinates":[...]}'></label>
+                            <input name="enabled" type="hidden" value="true">
+                            <div class="monitor-actions monitor-wide"><button type="submit">新增保存</button><button type="button" data-reset="pipeline-form">取消编辑</button></div>
+                        </form>
+                    </article>
+                    <article class="monitor-panel"><h2>设备与管段关联</h2><p>一台设备可关联多个管段，保存后用于后续风险追溯。</p>
+                        <form id="relation-form"><label>设备<select name="deviceId" required></select></label><label>关联管段<select name="pipelineSegmentIds" multiple size="6"></select></label><button type="submit" class="monitor-wide">保存关联关系</button></form>
+                    </article>
+                </div>
+                <article class="monitor-panel"><h2>已登记管段</h2><div class="monitor-scroll"><table><thead><tr><th>编号</th><th>名称</th><th>类型</th><th>区域</th><th>长度</th><th>数据来源</th><th>关联设备</th><th>操作</th></tr></thead><tbody id="pipeline-rows"><tr><td colspan="8">等待加载</td></tr></tbody></table></div></article>
+                <div class="monitor-grid">
+                    <article class="monitor-panel monitor-wide"><h2>设备、真实接入与最近上报</h2><div class="monitor-scroll"><table><thead><tr><th>编号</th><th>名称</th><th>站点</th><th>指标</th><th>周期</th><th>状态</th><th>最后接收</th><th>数据构成</th><th>设备凭证</th><th>关联管段</th><th>操作</th></tr></thead><tbody id="device-rows"><tr><td colspan="11">等待加载</td></tr></tbody></table></div></article>
+                    <article class="monitor-panel monitor-wide"><h2>真实设备持续 HTTP 上报</h2><p>管理员为设备生成独立密钥后，设备通过固定接口持续提交。密钥只显示一次，平台仅保存哈希。相同消息 ID 可安全重试；失败请求写入接入日志。</p><pre id="device-ingest-example" class="monitor-code">请在设备行点击“生成/轮换密钥”，平台会显示一次接入示例。</pre></article>
                     <article class="monitor-panel"><h2>自动模拟数据源</h2><p>由服务器按设定间隔持续产生正弦波模拟值，平台关闭页面后仍会运行。所有记录均标记为模拟。</p>
                         <form id="simulation-form"><label>启用设备<select name="deviceId" required><option value="">请先新增设备</option></select></label><label>基准值<input name="baseValue" type="number" required step="any" value="1.5"></label><label>波动幅度<input name="amplitude" type="number" required min="0" step="any" value="0.3"></label><label>生成间隔（秒）<input name="intervalSeconds" type="number" required min="1" max="86400" value="10"></label><button type="submit">启动或更新自动模拟</button></form>
                     </article>
@@ -164,6 +187,14 @@
                     </article>
                     <article class="monitor-panel monitor-wide" id="history-panel"><h2 id="history-title">最新值与历史记录</h2><div class="monitor-latest" id="monitor-latest">选择设备的“最新与历史”按钮查看。</div><div class="monitor-scroll"><table><thead><tr><th>消息ID</th><th>采集时间</th><th>接收时间</th><th>监测值</th><th>来源</th></tr></thead><tbody id="observation-rows"></tbody></table></div><div class="monitor-actions"><button id="history-prev" disabled>上一页</button><span id="history-count"></span><button id="history-next" disabled>下一页</button></div></article>
                 </div>
+                <div class="monitor-grid">
+                    <article class="monitor-panel"><h2>CSV 数据集校验与导入</h2><p>文件先进入暂存区，逐行校验通过后由管理员发布入库。失败批次不会污染正式监测记录。</p>
+                        <form id="dataset-form"><label>数据集编号<input name="code" required pattern="[A-Za-z0-9_-]+" placeholder="GNSS-2026-001"></label><label>数据集名称<input name="name" required placeholder="九月位移实测数据"></label><label>数据来源<select name="sourceType"><option value="REAL">真实</option><option value="SIMULATED">模拟</option><option value="UNKNOWN">未知</option></select></label><label>使用范围<input name="useScope" required placeholder="海淀示范区 / 模型评估"></label><label class="monitor-wide">CSV 文件<input name="file" type="file" accept=".csv,text/csv" required></label><div class="monitor-actions monitor-wide"><button type="submit">上传并校验</button><button type="button" id="download-template">下载 CSV 模板</button></div></form>
+                    </article>
+                    <article class="monitor-panel"><h2>最近一次校验结果</h2><div id="import-result" class="monitor-result">尚未上传文件。</div></article>
+                </div>
+                <article class="monitor-panel"><h2>数据集版本</h2><div class="monitor-scroll"><table><thead><tr><th>编号</th><th>名称</th><th>来源</th><th>范围</th><th>状态</th><th>有效/错误/总行</th><th>文件</th><th>操作</th></tr></thead><tbody id="dataset-rows"><tr><td colspan="8">等待加载</td></tr></tbody></table></div></article>
+                <article class="monitor-panel"><h2>设备接入日志</h2><div class="monitor-scroll"><table><thead><tr><th>时间</th><th>设备</th><th>消息ID</th><th>结果</th><th>状态码</th><th>说明</th><th>来源地址</th></tr></thead><tbody id="ingest-log-rows"><tr><td colspan="7">等待加载</td></tr></tbody></table></div></article>
             </div>
         </section>
 

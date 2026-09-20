@@ -36,7 +36,7 @@ class MonitoringIntegrationTest {
  Map<String,Object> deviceBody(String code) {return Map.of("code",code,"name","位移设备","stationId",station,"deviceType","GNSS_DISPLACEMENT","metricCode","vertical_displacement","intervalSeconds",30);}
  Map<String,Object> observation(String message,String time,double value,String unit) {return Map.of("deviceCode","DISP-001","messageId",message,"eventTime",time,"metricCode","vertical_displacement","value",value,"unit",unit,"sourceType","SIMULATED");}
  @BeforeEach void setup() throws Exception {
-   db.update("DELETE FROM observation");db.update("DELETE FROM simulation_job");db.update("DELETE FROM device");db.update("DELETE FROM station");
+   db.update("DELETE FROM observation_context");db.update("DELETE FROM import_staging");db.update("DELETE FROM import_job");db.update("DELETE FROM dataset_original_file");db.update("DELETE FROM dataset");db.update("DELETE FROM ingest_request_log");db.update("DELETE FROM device_credential");db.update("DELETE FROM device_pipeline_relation");db.update("DELETE FROM observation");db.update("DELETE FROM simulation_job");db.update("DELETE FROM device_profile");db.update("DELETE FROM device");db.update("DELETE FROM pipeline_segment");db.update("DELETE FROM station_profile");db.update("DELETE FROM station");
    admin="Bearer "+jwt.createToken(9001L,"monitor-admin");
    station=call(post("/api/stations"),stationBody("GNSS-001"),201).get("id").asLong();
    device=call(post("/api/devices"),deviceBody("DISP-001"),201).get("id").asLong();

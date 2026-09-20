@@ -1,0 +1,2 @@
+device_code,message_id,event_time,metric_code,value,unit,source_type
+DISP-001,device-session-000001,2026-09-20T03:00:00Z,vertical_displacement,1.62,mm,REAL

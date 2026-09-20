@@ -36,6 +36,8 @@ npm run start:file
 
 参见 [部署文档](docs/deployment.md)、[接口文档](docs/接口文档.md) 和 [阶段一开发说明](docs/阶段一开发说明.md)。
 
+阶段一已支持设备独立密钥持续 HTTP 上报、接入日志、管段关系、CSV 数据集校验与发布。CSV 模板位于 `datasets/templates/observation-import-template.csv`，也可在“数据接入”页面下载。
+
 配置中的本地开发示例密码仅用于隔离的开发环境，部署前应设置自己的数据库密码及 JWT 密钥。
 
 ## 仓库说明

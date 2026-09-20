@@ -19,6 +19,10 @@ spring:
       port: ${REDIS_PORT:6379}
       timeout: 1200ms
       connect-timeout: 1200ms
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
 
 risk-platform:
   jwt-secret: ${JWT_SECRET:risk-platform-local-secret-key-change-me-2026}

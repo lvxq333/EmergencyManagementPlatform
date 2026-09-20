@@ -18,6 +18,7 @@ public class MonitoringService {
     private final JdbcTemplate db;
     public MonitoringService(JdbcTemplate db) {this.db=db;}
     private static ApiException bad(String message) {return new ApiException(HttpStatus.BAD_REQUEST,message);}
+    private void audit(long user,String action,String type,long id,String detail) {db.update("INSERT INTO audit_log(actor_type,actor_id,action,target_type,target_id,detail) VALUES('USER',?,?,?,?,?)",user,action,type,String.valueOf(id),detail);}
     private static String text(String value,int max,String label) {
         if(value==null || value.isBlank() || value.trim().length()>max) throw bad(label+"不能为空且长度不得超过"+max);
         return value.trim();
@@ -36,21 +37,23 @@ public class MonitoringService {
         if(db.queryForObject("SELECT COUNT(*) FROM "+table+" WHERE id=?",Integer.class,id)==0)
             throw new ApiException(HttpStatus.NOT_FOUND,"站点或设备不存在");
     }
-    private final RowMapper<Map<String,Object>> stationRow=(r,n)->Map.of("id",r.getLong("id"),"code",r.getString("code"),"name",r.getString("name"),"region",r.getString("region"),"longitude",r.getDouble("longitude"),"latitude",r.getDouble("latitude"),"coordinateSystem",r.getString("coordinate_system"));
-    public Object stations() {return db.query("SELECT * FROM station ORDER BY id DESC",stationRow);}
-    @Transactional public Object saveStation(Long id,StationInput in) {
-        String code=code(in.code(),64),name=text(in.name(),120,"站点名称"),region=text(in.region(),120,"区域"),crs=text(in.coordinateSystem(),32,"坐标系");
+    private final RowMapper<Map<String,Object>> stationRow=(r,n)->{Map<String,Object> row=new LinkedHashMap<>();row.put("id",r.getLong("id"));row.put("code",r.getString("code"));row.put("name",r.getString("name"));row.put("region",r.getString("region"));row.put("longitude",r.getDouble("longitude"));row.put("latitude",r.getDouble("latitude"));row.put("coordinateSystem",r.getString("coordinate_system"));row.put("stationType",r.getString("station_type"));row.put("enabled",r.getBoolean("profile_enabled"));return row;};
+    public Object stations() {return db.query("SELECT s.*,COALESCE(sp.station_type,'GNSS') station_type,COALESCE(sp.enabled,TRUE) profile_enabled FROM station s LEFT JOIN station_profile sp ON sp.station_id=s.id ORDER BY s.id DESC",stationRow);}
+    @Transactional public Object saveStation(Long id,StationInput in,long user) {
+        boolean creating=id==null;
+        String code=code(in.code(),64),name=text(in.name(),120,"站点名称"),region=text(in.region(),120,"区域"),crs=text(in.coordinateSystem(),32,"坐标系"),type=in.stationType()==null||in.stationType().isBlank()?"GNSS":text(in.stationType(),32,"站点类型").toUpperCase(Locale.ROOT);boolean enabled=in.enabled()==null||in.enabled();
         if(in.longitude()==null || !Double.isFinite(in.longitude()) || Math.abs(in.longitude())>180 || in.latitude()==null || !Double.isFinite(in.latitude()) || Math.abs(in.latitude())>90) throw bad("经纬度不合法");
         if(!Set.of("WGS84","CGCS2000","GCJ02").contains(crs)) throw bad("不支持的坐标系");
         try {
             if(id==null) id=insert("INSERT INTO station(code,name,region,longitude,latitude,coordinate_system) VALUES(?,?,?,?,?,?)",code,name,region,in.longitude(),in.latitude(),crs);
             else {exists("station",id);db.update("UPDATE station SET code=?,name=?,region=?,longitude=?,latitude=?,coordinate_system=? WHERE id=?",code,name,region,in.longitude(),in.latitude(),crs,id);}
+            if(db.queryForObject("SELECT COUNT(*) FROM station_profile WHERE station_id=?",Integer.class,id)==0)db.update("INSERT INTO station_profile(station_id,station_type,enabled) VALUES(?,?,?)",id,type,enabled);else db.update("UPDATE station_profile SET station_type=?,enabled=? WHERE station_id=?",type,enabled,id);
         }catch(DuplicateKeyException e){throw new ApiException(HttpStatus.CONFLICT,"站点编号已存在");}
-        return Map.of("id",id);
+        audit(user,creating?"CREATE_STATION":"UPDATE_STATION","STATION",id,code);return Map.of("id",id);
     }
-    public Object metrics() {return db.query("SELECT * FROM metric_definition ORDER BY code",(r,n)->Map.of("code",r.getString("code"),"name",r.getString("name"),"unit",r.getString("unit")));}
+    public Object metrics() {return db.query("SELECT m.*,p.minimum_value,p.maximum_value,p.sampling_requirement FROM metric_definition m LEFT JOIN metric_definition_profile p ON p.metric_code=m.code ORDER BY m.code",(r,n)->{Map<String,Object> row=new LinkedHashMap<>();row.put("code",r.getString("code"));row.put("name",r.getString("name"));row.put("unit",r.getString("unit"));row.put("minimumValue",r.getObject("minimum_value"));row.put("maximumValue",r.getObject("maximum_value"));row.put("samplingRequirement",r.getString("sampling_requirement"));return row;});}
     public List<Map<String,Object>> devices() {
-        return db.query("SELECT d.*,s.name station_name,m.unit,sj.enabled simulation_enabled,sj.base_value simulation_base,sj.amplitude simulation_amplitude,sj.interval_seconds simulation_interval,sj.last_run_at simulation_last_run,sj.last_status simulation_last_status,(SELECT MAX(o.received_at) FROM observation o WHERE o.device_id=d.id) last_received,(SELECT COUNT(*) FROM observation o WHERE o.device_id=d.id AND o.source_type='SIMULATED') simulated_count,(SELECT COUNT(*) FROM observation o WHERE o.device_id=d.id AND o.source_type='REAL') real_count FROM device d JOIN station s ON s.id=d.station_id JOIN metric_definition m ON m.code=d.metric_code LEFT JOIN simulation_job sj ON sj.device_id=d.id ORDER BY d.id DESC",(r,n)->{
+        List<Map<String,Object>> rows = db.query("SELECT d.*,s.name station_name,m.unit,sj.enabled simulation_enabled,sj.base_value simulation_base,sj.amplitude simulation_amplitude,sj.interval_seconds simulation_interval,sj.last_run_at simulation_last_run,sj.last_status simulation_last_status,(SELECT MAX(o.received_at) FROM observation o WHERE o.device_id=d.id) last_received,(SELECT COUNT(*) FROM observation o WHERE o.device_id=d.id AND o.source_type='SIMULATED') simulated_count,(SELECT COUNT(*) FROM observation o WHERE o.device_id=d.id AND o.source_type='REAL') real_count FROM device d JOIN station s ON s.id=d.station_id JOIN metric_definition m ON m.code=d.metric_code LEFT JOIN simulation_job sj ON sj.device_id=d.id ORDER BY d.id DESC",(r,n)->{
             Map<String,Object> row=new LinkedHashMap<>();
             row.put("id",r.getLong("id"));row.put("code",r.getString("code"));row.put("name",r.getString("name"));row.put("stationId",r.getLong("station_id"));row.put("stationName",r.getString("station_name"));row.put("deviceType",r.getString("device_type"));row.put("metricCode",r.getString("metric_code"));row.put("unit",r.getString("unit"));row.put("intervalSeconds",r.getInt("interval_seconds"));row.put("enabled",r.getBoolean("enabled"));
             Timestamp last=r.getTimestamp("last_received");row.put("lastReceivedAt",last==null?null:last.toInstant());
@@ -60,9 +63,20 @@ public class MonitoringService {
             Timestamp simulationLast=r.getTimestamp("simulation_last_run");row.put("simulationLastRunAt",simulationLast==null?null:simulationLast.toInstant());row.put("simulationLastStatus",r.getString("simulation_last_status"));
             row.put("simulatedCount",r.getLong("simulated_count"));row.put("realCount",r.getLong("real_count"));return row;
         });
+        for (Map<String,Object> row : rows) {
+            long id=((Number)row.get("id")).longValue();
+            row.put("protocol",db.query("SELECT protocol FROM device_profile WHERE device_id=?",(r,n)->r.getString(1),id).stream().findFirst().orElse("HTTP"));
+            row.put("pipelineSegmentIds",db.query("SELECT pipeline_segment_id FROM device_pipeline_relation WHERE device_id=? ORDER BY pipeline_segment_id",(r,n)->r.getLong(1),id));
+            var credentials=db.queryForList("SELECT key_prefix,last_used_at FROM device_credential WHERE device_id=? AND enabled=TRUE",id);
+            row.put("credentialConfigured",!credentials.isEmpty());
+            row.put("credentialPrefix",credentials.isEmpty()?null:credentials.get(0).get("key_prefix"));
+            row.put("credentialLastUsedAt",credentials.isEmpty()?null:credentials.get(0).get("last_used_at"));
+        }
+        return rows;
     }
-    @Transactional public Object saveDevice(Long id,DeviceInput in) {
-        String code=code(in.code(),64),name=text(in.name(),120,"设备名称"),type=text(in.deviceType(),64,"设备类型"),metric=text(in.metricCode(),64,"指标");
+    @Transactional public Object saveDevice(Long id,DeviceInput in,long user) {
+        boolean creating=id==null;
+        String code=code(in.code(),64),name=text(in.name(),120,"设备名称"),type=text(in.deviceType(),64,"设备类型"),metric=text(in.metricCode(),64,"指标"),protocol=in.protocol()==null||in.protocol().isBlank()?"HTTP":text(in.protocol(),16,"接入协议").toUpperCase(Locale.ROOT);if(!Set.of("HTTP","MQTT","FILE").contains(protocol))throw bad("接入协议须为HTTP、MQTT或FILE");
         if(in.stationId()==null)throw bad("请选择站点");exists("station",in.stationId());
         if(in.intervalSeconds()==null || in.intervalSeconds()<1 || in.intervalSeconds()>86400)throw bad("上报周期须为1至86400秒");
         if(db.queryForObject("SELECT COUNT(*) FROM metric_definition WHERE code=?",Integer.class,metric)==0)throw bad("未知监测指标");
@@ -74,13 +88,14 @@ public class MonitoringService {
                 if(db.queryForObject("SELECT COUNT(*) FROM observation WHERE device_id=?",Integer.class,id)>0 && (!old.get("code").equals(code) || ((Number)old.get("station_id")).longValue()!=in.stationId() || !old.get("metric_code").equals(metric))) throw new ApiException(HttpStatus.CONFLICT,"已有数据的设备不能更换编号、站点或指标，请新建设备");
                 db.update("UPDATE device SET code=?,name=?,station_id=?,device_type=?,metric_code=?,interval_seconds=? WHERE id=?",code,name,in.stationId(),type,metric,in.intervalSeconds(),id);
             }
+            if(db.queryForObject("SELECT COUNT(*) FROM device_profile WHERE device_id=?",Integer.class,id)==0)db.update("INSERT INTO device_profile(device_id,protocol) VALUES(?,?)",id,protocol);else db.update("UPDATE device_profile SET protocol=? WHERE device_id=?",protocol,id);
         }catch(DuplicateKeyException e){throw new ApiException(HttpStatus.CONFLICT,"设备编号已存在");}
-        return Map.of("id",id);
+        audit(user,creating?"CREATE_DEVICE":"UPDATE_DEVICE","DEVICE",id,code);return Map.of("id",id);
     }
-    @Transactional public Object status(long id,Boolean enabled) {
+    @Transactional public Object status(long id,Boolean enabled,long user) {
         if(enabled==null)throw bad("enabled必须为布尔值");exists("device",id);db.update("UPDATE device SET enabled=? WHERE id=?",enabled,id);
         if(!enabled)db.update("UPDATE simulation_job SET enabled=FALSE,last_status='STOPPED',last_error='设备已停用',updated_at=? WHERE device_id=?",Timestamp.from(Instant.now()),id);
-        return Map.of("id",id,"enabled",enabled);
+        audit(user,"CHANGE_DEVICE_STATUS","DEVICE",id,String.valueOf(enabled));return Map.of("id",id,"enabled",enabled);
     }
     private final RowMapper<Map<String,Object>> observationRow=(r,n)->{
         Map<String,Object> out=new LinkedHashMap<>();out.put("id",r.getLong("id"));out.put("messageId",r.getString("message_id"));out.put("deviceId",r.getLong("device_id"));out.put("eventTime",r.getTimestamp("event_time").toInstant());out.put("receivedAt",r.getTimestamp("received_at").toInstant());out.put("metricCode",r.getString("metric_code"));out.put("value",r.getDouble("metric_value"));out.put("unit",r.getString("unit"));out.put("sourceType",r.getString("source_type"));return out;
@@ -106,7 +121,10 @@ public class MonitoringService {
         if(!d.get("metric_code").equals(metric))throw bad("指标与设备配置不符");
         String expected=db.queryForObject("SELECT unit FROM metric_definition WHERE code=?",String.class,metric);
         if(!expected.equals(unit))throw bad("单位必须为"+expected+"，当前版本不进行隐式换算");
+        var range=db.queryForList("SELECT minimum_value,maximum_value FROM metric_definition_profile WHERE metric_code=?",metric);if(!range.isEmpty()){Number minimum=(Number)range.get(0).get("minimum_value"),maximum=(Number)range.get(0).get("maximum_value");if(minimum!=null&&in.value()<minimum.doubleValue()||maximum!=null&&in.value()>maximum.doubleValue())throw bad("监测值超出指标合理范围");}
         long observation=insert("INSERT INTO observation(device_id,message_id,event_time,received_at,metric_code,metric_value,unit,source_type,submitted_by) VALUES(?,?,?,?,?,?,?,?,?)",id,message,Timestamp.from(time),Timestamp.from(Instant.now()),metric,in.value(),unit,source,user);
+        if(db.queryForObject("SELECT COUNT(*) FROM observation_context WHERE observation_id=?",Integer.class,observation)==0)
+            db.update("INSERT INTO observation_context(observation_id,dataset_id,ingest_method,quality_status) VALUES(?,NULL,'HTTP_USER','VALID')",observation);
         return Map.of("id",observation,"duplicate",false);
     }
     public Object latest(long id) {
@@ -128,10 +146,12 @@ public class MonitoringService {
         if(db.queryForObject("SELECT COUNT(*) FROM simulation_job WHERE device_id=?",Integer.class,id)==0)
             db.update("INSERT INTO simulation_job(device_id,enabled,base_value,amplitude,interval_seconds,next_run_at,updated_by,updated_at) VALUES(?,?,?,?,?,?,?,?)",id,true,in.baseValue(),in.amplitude(),in.intervalSeconds(),Timestamp.from(now),user,Timestamp.from(now));
         else db.update("UPDATE simulation_job SET enabled=TRUE,base_value=?,amplitude=?,interval_seconds=?,next_run_at=?,last_error=NULL,updated_by=?,updated_at=? WHERE device_id=?",in.baseValue(),in.amplitude(),in.intervalSeconds(),Timestamp.from(now),user,Timestamp.from(now),id);
+        audit(user,"CONFIGURE_SIMULATION","DEVICE",id,"interval="+in.intervalSeconds());
         return Map.of("deviceId",id,"enabled",true);
     }
-    @Transactional public Object stopSimulation(long id) {
+    @Transactional public Object stopSimulation(long id,long user) {
         exists("device",id);db.update("UPDATE simulation_job SET enabled=FALSE,last_status='STOPPED',last_error=NULL,updated_at=? WHERE device_id=?",Timestamp.from(Instant.now()),id);
+        audit(user,"STOP_SIMULATION","DEVICE",id,null);
         return Map.of("deviceId",id,"enabled",false);
     }
     public Object summary() {
@@ -151,7 +171,8 @@ public class MonitoringService {
             double base=((Number)job.get("base_value")).doubleValue(),amplitude=((Number)job.get("amplitude")).doubleValue();
             double value=base+amplitude*Math.sin(index*Math.PI/8D);
             String message="AUTO-"+id+"-"+index;
-            insert("INSERT INTO observation(device_id,message_id,event_time,received_at,metric_code,metric_value,unit,source_type,submitted_by) VALUES(?,?,?,?,?,?,?,?,?)",id,message,Timestamp.from(now),Timestamp.from(now),job.get("metric_code"),value,job.get("unit"),"SIMULATED",job.get("updated_by"));
+            long observation=insert("INSERT INTO observation(device_id,message_id,event_time,received_at,metric_code,metric_value,unit,source_type,submitted_by) VALUES(?,?,?,?,?,?,?,?,?)",id,message,Timestamp.from(now),Timestamp.from(now),job.get("metric_code"),value,job.get("unit"),"SIMULATED",job.get("updated_by"));
+            db.update("INSERT INTO observation_context(observation_id,dataset_id,ingest_method,quality_status) VALUES(?,NULL,'SIMULATOR','VALID')",observation);
             int interval=((Number)job.get("interval_seconds")).intValue();
             db.update("UPDATE simulation_job SET sample_index=?,next_run_at=?,last_run_at=?,last_status='SUCCESS',last_error=NULL WHERE device_id=?",index+1,Timestamp.from(now.plusSeconds(interval)),Timestamp.from(now),id);
         }
