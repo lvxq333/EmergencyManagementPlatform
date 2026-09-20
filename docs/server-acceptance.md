@@ -21,7 +21,7 @@ http://10.21.255.108:18080/login.html （需连接服务器所在网络）
 | 内容 | 路径 |
 | --- | --- |
 | 当前应用链接 | `$HOME/apps/risk-platform` |
-| 当前发布目录 | `$HOME/apps/risk-platform-releases/phase1-complete-b73e646` |
+| 当前发布目录 | `$HOME/apps/risk-platform-releases/phase1-complete-b1ff8a9` |
 | Java 运行时 | `$HOME/apps/risk-platform-tools/jre17` |
 | 私有数据库文件 | `$HOME/apps/risk-platform-mysql` |
 | Java / 网关环境配置 | `$HOME/.config/risk-platform/java.env`、`gateway.env` |
